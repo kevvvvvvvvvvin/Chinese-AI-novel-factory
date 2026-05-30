@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI小说工厂</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0b0e;--bg2:#12141a;--bg3:#1a1d26;--bg4:#232734;--border:#2a2e3a;--text:#c8ccd8;--text2:#8890a4;--accent:#e8a838;--accent2:#d4812a;--green:#3dd68c;--red:#e85454;--blue:#5b8dee;--purple:#a87bea;--font-body:'Noto Sans SC',sans-serif;--font-mono:'JetBrains Mono',monospace}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;overflow:hidden;height:100vh}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+.app{display:flex;height:100vh}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-family:var(--font-mono);font-size:14px;color:var(--accent);letter-spacing:2px}
+.sidebar-header p{font-size:11px;color:var(--text2);margin-top:4px}
+.project-select{margin:12px 16px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;width:calc(100% - 32px);cursor:pointer}
+.project-select:focus{outline:none;border-color:var(--accent)}
+.nav{flex:1;padding:8px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(232,168,56,.08);color:var(--accent);border-right:2px solid var(--accent)}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--bg2)}
+.topbar-title{font-family:var(--font-mono);font-size:13px;color:var(--text2)}
+.topbar-status{display:flex;gap:16px;font-size:11px;color:var(--text2)}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px}
+.status-dot.on{background:var(--green)}.status-dot.off{background:var(--red)}
+.content{flex:1;overflow-y:auto;padding:24px}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr 1fr}.grid-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:500;color:var(--text)}
+.card-value{font-family:var(--font-mono);font-size:28px;font-weight:700;color:var(--accent)}
+.card-sub{font-size:11px;color:var(--text2);margin-top:4px}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-green{background:rgba(61,214,140,.12);color:var(--green)}
+.badge-blue{background:rgba(91,141,238,.12);color:var(--blue)}
+.badge-yellow{background:rgba(232,168,56,.12);color:var(--accent)}
+.badge-red{background:rgba(232,84,84,.12);color:var(--red)}
+.badge-purple{background:rgba(168,123,234,.12);color:var(--purple)}
+.btn{padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;transition:all .15s;font-family:var(--font-body)}
+.btn:hover{background:var(--bg4);border-color:var(--text2)}
+.btn-primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:500}
+.btn-primary:hover{background:var(--accent2)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-danger{border-color:var(--red);color:var(--red)}.btn-danger:hover{background:rgba(232,84,84,.1)}
+.input{padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;width:100%;font-family:var(--font-body)}
+.input:focus{outline:none;border-color:var(--accent)}
+textarea.input{min-height:120px;resize:vertical;font-size:12px;line-height:1.6}
+.table{width:100%;border-collapse:collapse}
+.table th{text-align:left;padding:8px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);font-weight:500}
+.table td{padding:10px 12px;font-size:13px;border-bottom:1px solid rgba(42,46,58,.5)}
+.table tr:hover td{background:rgba(255,255,255,.02)}
+.progress-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.trope-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px 16px;cursor:pointer;transition:all .15s}
+.trope-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.trope-card .name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.trope-card .cat{font-size:11px;color:var(--accent)}
+.trope-card .desc{font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5}
+.trope-tag{display:inline-block;padding:1px 6px;margin:2px;border-radius:3px;font-size:10px;background:var(--bg);color:var(--text2)}
+.chapter-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;background:var(--bg2);cursor:pointer;transition:all .15s}
+.chapter-row:hover{border-color:var(--accent)}
+.chapter-num{font-family:var(--font-mono);font-size:12px;color:var(--accent);width:50px;flex-shrink:0}
+.chapter-info{flex:1}
+.chapter-info .title{font-size:13px;color:var(--text)}
+.chapter-info .meta{font-size:11px;color:var(--text2);margin-top:2px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;width:560px;max-width:90vw;max-height:80vh;overflow-y:auto}
+.modal h2{font-size:16px;margin-bottom:16px;color:var(--accent)}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px}
+.empty{text-align:center;padding:48px;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.mvp-header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}
+.mvp-title h2{font-size:24px;color:var(--accent);margin-bottom:8px}
+.mvp-title p{font-size:13px;color:var(--text2);line-height:1.8;max-width:720px}
+.mvp-status{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.mvp-pill{padding:8px 12px;border:1px solid var(--border);background:var(--bg2);border-radius:6px;font-size:12px;color:var(--text2)}
+.mvp-pill strong{color:var(--text);font-weight:500}
+.mvp-tools{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.mvp-tool{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;min-height:104px;transition:all .15s}
+.mvp-tool:hover{border-color:var(--accent);background:var(--bg3)}
+.mvp-tool.active{border-color:var(--accent);background:rgba(232,168,56,.08)}
+.mvp-tool .icon{font-size:20px;margin-bottom:10px}
+.mvp-tool .name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.mvp-tool .desc{font-size:11px;color:var(--text2);line-height:1.5;margin-top:6px}
+.mvp-workbench{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:16px;align-items:start}
+.mvp-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:18px}
+.mvp-panel-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:14px}
+.mvp-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.mvp-result{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;min-height:180px;max-height:640px;overflow:auto}
+.mvp-result-empty{color:var(--text2);font-size:13px;line-height:1.8;padding:24px;text-align:center}
+.mvp-kv{border-bottom:1px solid rgba(42,46,58,.65);padding:10px 0}
+.mvp-kv:last-child{border-bottom:none}
+.mvp-key{font-size:12px;color:var(--accent);margin-bottom:6px}
+.mvp-value{font-size:13px;line-height:1.75;white-space:pre-wrap}
+.mvp-list{padding-left:18px;color:var(--text);line-height:1.75}
+.mvp-list li{margin:4px 0}
+.mvp-json{margin-top:12px;background:#050608;border:1px solid var(--border);border-radius:8px;padding:12px;white-space:pre-wrap;font-size:11px;color:var(--text2);line-height:1.6;max-height:420px;overflow:auto}
+.mvp-loading{display:flex;align-items:center;gap:10px;color:var(--accent);font-size:13px}
+.mvp-spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:mvpSpin .8s linear infinite}
+@keyframes mvpSpin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.sidebar{width:56px}.sidebar-header h1,.sidebar-header p,.project-select,.nav-item span{display:none}.nav-item{justify-content:center;padding:12px}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+@media(max-width:1100px){.mvp-tools{grid-template-columns:repeat(2,1fr)}.mvp-workbench{grid-template-columns:1fr}.mvp-header{flex-direction:column}.mvp-status{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect, useCallback} = React;
+const API = '';
+
+// ============================================================
+// API 调用层
+// ============================================================
+const api = {
+  get: async (path) => { const r = await fetch(API+path); if(!r.ok) throw new Error(r.statusText); return r.json(); },
+  post: async (path, data) => { const r = await fetch(API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); if(!r.ok) throw new Error(r.statusText); return r.json(); },
+  put: async (path, data) => { const r = await fetch(API+path, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); return r.json(); },
+  del: async (path) => { const r = await fetch(API+path, {method:'DELETE'}); return r.json(); },
+};
+
+// ============================================================
+// 仪表盘
+// ============================================================
+function Dashboard({status}) {
+  const ch = status?.chapters || {};
+  const llm = status?.llm || {};
+  return (
+    <div>
+      <div className="grid grid-4" style={{marginBottom:20}}>
+        <div className="card"><div className="card-title">📖 总章节</div><div className="card-value">{ch.total||0}</div><div className="card-sub">{ch.completed||0} 已完成</div></div>
+        <div className="card"><div className="card-title">✍️ 总字数</div><div className="card-value">{(ch.words||0).toLocaleString()}</div><div className="card-sub">{ch.total > 0 ? Math.round(ch.words/ch.total) : 0} 字/章</div></div>
+        <div className="card"><div className="card-title">🎭 套路库</div><div className="card-value">{status?.tropes||0}</div><div className="card-sub">{status?.campaigns||0} 份战役细纲</div></div>
+        <div className="card"><div className="card-title">🔌 LLM</div><div className="card-value" style={{fontSize:16}}>{llm.mode||'offline'}</div><div className="card-sub">{llm.total_tokens?.toLocaleString()||0} tokens | ${llm.cost_usd||0}</div></div>
+      </div>
+      {ch.total > 0 && <div className="card">
+        <div className="card-title">📊 生产进度</div>
+        <div className="progress-bar" style={{marginTop:12,height:8}}>
+          <div className="progress-fill" style={{width: `${ch.total>0?ch.completed/ch.total*100:0}%`}}/>
+        </div>
+        <div className="card-sub" style={{marginTop:8}}>{ch.completed}/{ch.total} 章完成 ({ch.total>0?Math.round(ch.completed/ch.total*100):0}%)</div>
+      </div>}
+    </div>
+  );
+}
+
+// ============================================================
+// 章节管理
+// ============================================================
+function ChaptersView() {
+  const [chapters, setChapters] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [detail, setDetail] = useState(null);
+  
+  useEffect(() => { api.get('/api/chapters').then(setChapters).catch(()=>{}); }, []);
+  
+  const openChapter = async (num) => {
+    try { const ch = await api.get(`/api/chapters/${num}`); setDetail(ch); setSelected(num); }
+    catch(e) { console.error(e); }
+  };
+  
+  const statusIcon = {planned:'📋', outline_done:'📝', written:'✍️', completed:'✅'};
+  const statusLabel = {planned:'待规划', outline_done:'大纲完成', written:'正文完成', completed:'已完成'};
+  
+  if (detail && selected) {
+    return (<div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <h3 style={{fontSize:16}}>第{selected}章 {detail.title||''}</h3>
+        <button className="btn" onClick={()=>{setDetail(null);setSelected(null)}}>← 返回列表</button>
+      </div>
+      <div className="grid grid-2">
+        <div className="card">
+          <div className="card-title">📝 大纲</div>
+          <pre style={{whiteSpace:'pre-wrap',fontSize:12,lineHeight:1.7,color:'var(--text2)',marginTop:12,maxHeight:400,overflow:'auto'}}>{detail.outline||'暂无大纲'}</pre>
+        </div>
+        <div className="card">
+          <div className="card-title">📖 正文 <span className="badge badge-blue">{detail.word_count||0}字</span></div>
+          <pre style={{whiteSpace:'pre-wrap',fontSize:12,lineHeight:1.8,color:'var(--text)',marginTop:12,maxHeight:400,overflow:'auto'}}>{detail.content||'暂无正文'}</pre>
+        </div>
+      </div>
+    </div>);
+  }
+  
+  return (<div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <h3 style={{fontSize:16}}>章节列表</h3>
+    </div>
+    {chapters.length === 0 ? (
+      <div className="empty"><div className="empty-icon">📖</div><p>还没有章节</p><p style={{fontSize:12,marginTop:8}}>在执行模式中生产第一章吧</p></div>
+    ) : chapters.map(ch => (
+      <div key={ch.chapter_num} className="chapter-row" onClick={()=>openChapter(ch.chapter_num)}>
+        <div className="chapter-num">#{String(ch.chapter_num).padStart(3,'0')}</div>
+        <div className="chapter-info">
+          <div className="title">{ch.title || `第${ch.chapter_num}章`}</div>
+          <div className="meta">{statusIcon[ch.status]||'❓'} {statusLabel[ch.status]||ch.status} · {ch.word_count||0}字</div>
+        </div>
+        <div className="badge badge-green">{ch.word_count||0}字</div>
+      </div>
+    ))}
+  </div>);
+}
+
+// ============================================================
+// 套路工坊
+// ============================================================
+function TropesView() {
+  const [data, setData] = useState(null);
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState(null);
+  const [filter, setFilter] = useState('');
+  
+  useEffect(() => { api.get('/api/tropes').then(setData).catch(()=>{}); }, []);
+  
+  const doSearch = async () => {
+    if(!search.trim()) return;
+    const r = await api.get(`/api/tropes/search?q=${encodeURIComponent(search)}&k=12`);
+    setResults(r);
+  };
+  
+  const cats = data?.categories || {};
+  const tropes = data?.tropes || [];
+  const filtered = filter ? tropes.filter(t=>t.category===filter) : tropes;
+  const display = results || filtered.map(t=>({name:t.name, score:0, ...t}));
+  
+  return (<div>
+    <div style={{display:'flex',gap:12,marginBottom:20}}>
+      <input className="input" placeholder="🔍 描述你想要的效果...如「打脸」「碾压」「误会」" value={search}
+        onChange={e=>setSearch(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doSearch()} style={{flex:1}}/>
+      <button className="btn btn-primary" onClick={doSearch}>搜索</button>
+      {results && <button className="btn" onClick={()=>setResults(null)}>清除</button>}
+    </div>
+    
+    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16}}>
+      <button className={`btn btn-sm ${!filter?'btn-primary':''}`} onClick={()=>setFilter('')}>全部 ({data?.total||0})</button>
+      {Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>(
+        <button key={cat} className={`btn btn-sm ${filter===cat?'btn-primary':''}`} onClick={()=>{setFilter(cat);setResults(null)}}>{cat} ({count})</button>
+      ))}
+    </div>
+    
+    <div className="grid grid-3">
+      {display.slice(0,60).map((t,i) => (
+        <div key={i} className="trope-card">
+          <div className="name">{t.name}</div>
+          <div className="cat">{t.category||t.功能大类||''} {t.score>0 && <span className="badge badge-yellow">{(t.score*100).toFixed(0)}%匹配</span>}</div>
+          <div className="desc">{t.desc||t.描述||''}</div>
+          <div style={{marginTop:6}}>
+            {(t.tags||t.功能标签||[]).slice(0,4).map((tag,j)=><span key={j} className="trope-tag">{String(tag).slice(0,10)}</span>)}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>);
+}
+
+// ============================================================
+// 生产控制台
+// ============================================================
+function ProduceView({status}) {
+  const [chapterNum, setChapterNum] = useState(1);
+  const [questNode, setQuestNode] = useState('');
+  const [tropes, setTropes] = useState('');
+  const [producing, setProducing] = useState(false);
+  const [result, setResult] = useState(null);
+  
+  useEffect(() => {
+    const total = status?.chapters?.total || 0;
+    setChapterNum(total + 1);
+  }, [status]);
+  
+  const produce = async () => {
+    if(!questNode.trim()) return alert('请输入任务节点');
+    setProducing(true); setResult(null);
+    try {
+      const tropeList = tropes.split(/[,，、\s]+/).filter(Boolean);
+      const r = await api.post('/api/produce/chapter', {
+        chapter_num: chapterNum, quest_node: questNode,
+        tropes: tropeList, character_states: {}, style: {}
+      });
+      setResult(r);
+    } catch(e) { setResult({success:false, error: e.message}); }
+    finally { setProducing(false); }
+  };
+  
+  const autoProduce = async () => {
+    if(!confirm('启动全自动生产？系统将自动解析细纲并批量生产。')) return;
+    try { await api.post('/api/produce/auto'); alert('AutoPilot已启动，后台生产中...'); }
+    catch(e) { alert('启动失败: ' + e.message); }
+  };
+  
+  return (<div>
+    <div className="grid grid-2">
+      <div className="card">
+        <div className="card-title">⚡ 单章生产</div>
+        <div className="form-group" style={{marginTop:12}}>
+          <label className="form-label">章节号</label>
+          <input className="input" type="number" value={chapterNum} onChange={e=>setChapterNum(+e.target.value)}/>
+        </div>
+        <div className="form-group">
+          <label className="form-label">任务节点（本章核心目标）</label>
+          <textarea className="input" placeholder="例: 主角在退婚大会上被羞辱，愤怒反击，定下三年之约..." value={questNode} onChange={e=>setQuestNode(e.target.value)}/>
+        </div>
+        <div className="form-group">
+          <label className="form-label">套路（可选，逗号分隔）</label>
+          <input className="input" placeholder="例: 废柴退婚流开局, 英雄救场与反派秒杀" value={tropes} onChange={e=>setTropes(e.target.value)}/>
+        </div>
+        <button className="btn btn-primary" onClick={produce} disabled={producing} style={{width:'100%'}}>
+          {producing ? '⏳ 生产中...' : '🚀 开始生产'}
+        </button>
+      </div>
+      
+      <div className="card">
+        <div className="card-title">🤖 AutoPilot 全自动</div>
+        <p style={{color:'var(--text2)',fontSize:12,lineHeight:1.8,marginTop:12}}>
+          AutoPilot会自动：<br/>
+          ① 解析战役细纲提取章节节点<br/>
+          ② 为每章自动匹配最佳套路<br/>
+          ③ 生成大纲 → 正文 → 审查 → 报告<br/>
+          ④ 章间自动传递角色状态<br/>
+          ⑤ 全程Token预算管控
+        </p>
+        <button className="btn btn-primary" onClick={autoProduce} style={{width:'100%',marginTop:16}}>
+          🚀 启动 AutoPilot
+        </button>
+        <div style={{marginTop:12,fontSize:11,color:'var(--text2)'}}>{status?.llm?.mode==='offline' ? '⚠️ 需要API Key' : '✅ API已连接'}</div>
+        
+        {result && <div className="card" style={{marginTop:16,background:'var(--bg)'}}>
+          <div className="card-title">{result.success ? '✅ 生产成功' : '⚠️ 部分完成'}</div>
+          <div style={{fontSize:12,color:'var(--text2)',marginTop:8}}>
+            {result.word_count && <div>字数: {result.word_count}</div>}
+            {result.steps && <div>完成步骤: {result.steps.join(' → ')}</div>}
+            {result.error && <div style={{color:'var(--red)'}}>错误: {result.error}</div>}
+          </div>
+        </div>}
+      </div>
+    </div>
+  </div>);
+}
+
+// ============================================================
+// 项目管理
+// ============================================================
+function ProjectsView({projects, current, onSwitch, onRefresh}) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [name, setName] = useState('');
+  const [genre, setGenre] = useState('');
+  const [desc, setDesc] = useState('');
+  
+  const create = async () => {
+    if(!name.trim()) return;
+    await api.post('/api/projects', {name, genre, description: desc});
+    setShowCreate(false); setName(''); setGenre(''); setDesc('');
+    onRefresh();
+  };
+  
+  const del = async (pid) => {
+    if(!confirm(`确认删除项目 ${pid}？此操作不可撤销！`)) return;
+    await api.del(`/api/projects/${pid}`);
+    onRefresh();
+  };
+  
+  return (<div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <h3 style={{fontSize:16}}>项目管理</h3>
+      <button className="btn btn-primary" onClick={()=>setShowCreate(true)}>+ 新建项目</button>
+    </div>
+    
+    <div className="grid grid-2">
+      {projects.map(p => (
+        <div key={p.id} className="card" style={{borderColor: p.id===current ? 'var(--accent)' : 'var(--border)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'start'}}>
+            <div>
+              <div style={{fontSize:15,fontWeight:500}}>{p.name}</div>
+              <div style={{fontSize:11,color:'var(--text2)',marginTop:4}}>{p.genre} · {p.description||'无描述'}</div>
+            </div>
+            {p.id===current && <span className="badge badge-yellow">当前</span>}
+          </div>
+          <div style={{display:'flex',gap:16,marginTop:12,fontSize:12,color:'var(--text2)'}}>
+            <span>📖 {p.chapter_count||0}章</span>
+            <span>✍️ {(p.total_words||0).toLocaleString()}字</span>
+            <span>✅ {p.completed_chapters||0}完成</span>
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:12}}>
+            {p.id!==current && <button className="btn btn-sm btn-primary" onClick={()=>onSwitch(p.id)}>切换到此项目</button>}
+            <button className="btn btn-sm btn-danger" onClick={()=>del(p.id)}>删除</button>
+          </div>
+        </div>
+      ))}
+    </div>
+    
+    {showCreate && <div className="modal-overlay" onClick={()=>setShowCreate(false)}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h2>✨ 创建新项目</h2>
+        <div className="form-group"><label className="form-label">项目名称</label><input className="input" placeholder="如: 沧澜剑尊" value={name} onChange={e=>setName(e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">类型</label><input className="input" placeholder="如: 玄幻 / 都市 / 科幻" value={genre} onChange={e=>setGenre(e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">简介</label><textarea className="input" placeholder="一句话描述你的小说..." value={desc} onChange={e=>setDesc(e.target.value)}/></div>
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+          <button className="btn" onClick={()=>setShowCreate(false)}>取消</button>
+          <button className="btn btn-primary" onClick={create}>创建</button>
+        </div>
+      </div>
+    </div>}
+  </div>);
+}
+
+// ============================================================
+// 世界观
+// ============================================================
+function WorldView() {
+  const [world, setWorld] = useState(null);
+  useEffect(()=>{ api.get('/api/world').then(setWorld).catch(()=>{}); }, []);
+  if(!world) return <div className="empty">加载中...</div>;
+  
+  const ws = world.settings || {};
+  return (<div>
+    <div className="grid grid-2">
+      <div className="card">
+        <div className="card-title">🌍 世界设定</div>
+        <pre style={{whiteSpace:'pre-wrap',fontSize:12,color:'var(--text2)',marginTop:12,lineHeight:1.7}}>{JSON.stringify(ws, null, 2)}</pre>
+      </div>
+      <div className="card">
+        <div className="card-title">📋 故事总纲</div>
+        <pre style={{whiteSpace:'pre-wrap',fontSize:12,color:'var(--text2)',marginTop:12,lineHeight:1.8,maxHeight:400,overflow:'auto'}}>{world.story_outline || '未生成'}</pre>
+      </div>
+    </div>
+    {world.campaigns?.length > 0 && <div className="card" style={{marginTop:16}}>
+      <div className="card-title">🗺️ 战役细纲</div>
+      <div style={{marginTop:8}}>{world.campaigns.map((fn,i)=><span key={i} className="badge badge-blue" style={{marginRight:8}}>{fn}</span>)}</div>
+    </div>}
+  </div>);
+}
+
+// ============================================================
+// 小说日更助手 MVP
+// ============================================================
+const mvpTools = [
+  {
+    key:'topic', icon:'💡', name:'选题/开局生成器', desc:'题材、读者、平台到开局方案',
+    endpoint:'/api/mvp/topic', button:'开始生成选题',
+    fields:[
+      {name:'genre', label:'题材', placeholder:'都市爽文', value:'都市爽文'},
+      {name:'audience', label:'目标读者', placeholder:'男频 / 女频 / 泛读者', value:'男频'},
+      {name:'keywords', label:'关键词', placeholder:'舔狗逆袭, 神豪, 前女友后悔', value:'舔狗逆袭, 神豪, 前女友后悔'},
+      {name:'tone', label:'情绪基调', placeholder:'爽文 / 轻松 / 复仇 / 热血', value:'爽文'},
+      {name:'protagonist_direction', label:'主角方向', placeholder:'普通人突然获得消费返利系统', value:'普通人突然获得消费返利系统'},
+      {name:'platform', label:'目标平台', placeholder:'番茄 / 七猫 / 起点', value:'番茄'},
+    ]
+  },
+  {
+    key:'characters', icon:'🧑', name:'人设与金手指', desc:'主角、反派、情绪发动机',
+    endpoint:'/api/mvp/characters', button:'设计人设与金手指',
+    fields:[
+      {name:'genre', label:'题材', placeholder:'都市神豪', value:'都市神豪'},
+      {name:'audience', label:'目标读者', placeholder:'男频', value:'男频'},
+      {name:'story_seed', label:'故事种子', type:'textarea', placeholder:'一句话描述故事起点'},
+      {name:'protagonist_identity', label:'主角身份', placeholder:'落魄销售 / 外卖员 / 小镇青年'},
+      {name:'desired_payoff', label:'期望爽点', placeholder:'打脸前任、财富碾压、阶层逆袭'},
+    ]
+  },
+  {
+    key:'golden', icon:'🏁', name:'黄金三章细纲', desc:'前三章留存与爽点兑现',
+    endpoint:'/api/mvp/golden-three', button:'生成黄金三章',
+    fields:[
+      {name:'title_direction', label:'书名/方向', placeholder:'分手后，我绑定神豪返利系统'},
+      {name:'genre', label:'题材', placeholder:'都市神豪'},
+      {name:'core_hook', label:'核心钩子', type:'textarea', placeholder:'主角被前女友羞辱后，系统激活...'},
+      {name:'protagonist', label:'主角', placeholder:'示例主角，普通人，被现实压垮但不服输'},
+      {name:'golden_finger', label:'金手指', placeholder:'消费返利系统，越被看不起越触发倍率'},
+      {name:'main_conflict', label:'主冲突', placeholder:'前任和富二代当众羞辱，主角必须反击'},
+    ]
+  },
+  {
+    key:'daily', icon:'✍️', name:'单章日更包', desc:'目标合同、细纲、正文和钩子',
+    endpoint:'/api/mvp/daily-chapter', button:'生成今日章节',
+    fields:[
+      {name:'chapter_num', label:'章节号', type:'number', value:12},
+      {name:'story_context', label:'前文简述', type:'textarea', placeholder:'用 3-5 句话说明前文进展'},
+      {name:'chapter_goal', label:'本章目标', placeholder:'主角第一次反杀'},
+      {name:'characters_state', label:'角色状态', type:'textarea', placeholder:'主角、反派、关键配角当前状态'},
+      {name:'must_include', label:'必须包含', type:'textarea', placeholder:'必须出现的物品、台词、伏笔、冲突'},
+      {name:'style', label:'风格', placeholder:'番茄男频爽文', value:'番茄男频爽文'},
+      {name:'target_words', label:'目标字数', type:'number', value:2500},
+      {name:'generate_full_text', label:'生成完整正文草稿', type:'checkbox', value:true},
+    ]
+  },
+  {
+    key:'diagnosis', icon:'🩺', name:'作品开头诊断', desc:'像网文编辑一样检查前 300 字',
+    endpoint:'/api/mvp/opening-diagnosis', button:'诊断我的开头',
+    fields:[
+      {name:'genre', label:'题材', placeholder:'都市爽文', value:'都市爽文'},
+      {name:'platform', label:'目标平台', placeholder:'番茄', value:'番茄'},
+      {name:'target_reader', label:'目标读者', placeholder:'男频读者', value:'男频读者'},
+      {name:'opening_text', label:'开头正文', type:'textarea', placeholder:'粘贴作品开头，建议至少 300 字'},
+    ]
+  },
+];
+
+function buildInitialMvpForms() {
+  const forms = {};
+  mvpTools.forEach(tool => {
+    forms[tool.key] = {};
+    tool.fields.forEach(field => forms[tool.key][field.name] = field.value ?? '');
+  });
+  return forms;
+}
+
+function renderMvpValue(value) {
+  if (value === null || value === undefined || value === '') return <span style={{color:'var(--text2)'}}>未生成</span>;
+  if (Array.isArray(value)) {
+    return <ul className="mvp-list">{value.map((item, i)=><li key={i}>{typeof item === 'object' ? renderMvpValue(item) : String(item)}</li>)}</ul>;
+  }
+  if (typeof value === 'object') {
+    return <div>{Object.entries(value).map(([k,v])=><div key={k} className="mvp-kv"><div className="mvp-key">{k}</div><div className="mvp-value">{renderMvpValue(v)}</div></div>)}</div>;
+  }
+  return <span>{String(value)}</span>;
+}
+
+function MVPAssistantView() {
+  const [mvpStatus, setMvpStatus] = useState(null);
+  const [active, setActive] = useState('topic');
+  const [forms, setForms] = useState(buildInitialMvpForms);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [showRaw, setShowRaw] = useState(false);
+  
+  const tool = mvpTools.find(t=>t.key===active) || mvpTools[0];
+  
+  const loadMvpStatus = useCallback(async () => {
+    try { setMvpStatus(await api.get('/api/mvp/status')); }
+    catch(e) { console.error('MVP状态加载失败:', e); }
+  }, []);
+  
+  useEffect(()=>{ loadMvpStatus(); }, [loadMvpStatus]);
+  
+  const updateField = (name, value) => {
+    setForms(prev => ({...prev, [active]: {...prev[active], [name]: value}}));
+  };
+  
+  const submit = async () => {
+    setLoading(true); setResult(null); setShowRaw(false);
+    try {
+      const payload = {...forms[active], member_id:'default_member'};
+      tool.fields.forEach(field => {
+        if (field.type === 'number') payload[field.name] = Number(payload[field.name] || 0);
+        if (field.type === 'checkbox') payload[field.name] = Boolean(payload[field.name]);
+      });
+      const r = await api.post(tool.endpoint, payload);
+      setResult(r);
+      await loadMvpStatus();
+    } catch(e) {
+      setResult({success:false, error:e.message, result:{}});
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const copyResult = async () => {
+    if(!result) return;
+    const text = JSON.stringify(result.result || result, null, 2);
+    try { await navigator.clipboard.writeText(text); alert('结果已复制'); }
+    catch(e) { alert('复制失败，请手动复制原始 JSON'); }
+  };
+  
+  const quota = mvpStatus?.quota || {};
+  const llmMode = mvpStatus?.llm?.mode || 'offline';
+  
+  return (<div>
+    <div className="mvp-header">
+      <div className="mvp-title">
+        <h2>小说日更助手</h2>
+        <p>不是替你躺赚的 AI 写文机器，而是帮助网文作者稳定日更的创作工作台。核心能力：选题开局、人设金手指、黄金三章、单章日更包、开头诊断。</p>
+      </div>
+      <div className="mvp-status">
+        <div className="mvp-pill">当前套餐：<strong>{quota.plan === 'internal_test' ? '内测版' : quota.plan || '内测版'}</strong></div>
+        <div className="mvp-pill">本月额度：<strong>已用 {quota.used ?? 0} / {quota.monthly_quota ?? 30}</strong></div>
+        <div className="mvp-pill">LLM：<strong>{llmMode}</strong></div>
+      </div>
+    </div>
+    
+    <div className="mvp-tools">
+      {mvpTools.map(item=>(
+        <div key={item.key} className={`mvp-tool ${active===item.key?'active':''}`} onClick={()=>{setActive(item.key);setResult(null);setShowRaw(false)}}>
+          <div className="icon">{item.icon}</div>
+          <div className="name">{item.name}</div>
+          <div className="desc">{item.desc}</div>
+        </div>
+      ))}
+    </div>
+    
+    <div className="mvp-workbench">
+      <div className="mvp-panel">
+        <div className="mvp-panel-title">{tool.icon} {tool.name}</div>
+        {tool.fields.map(field=>(
+          <div className="form-group" key={field.name}>
+            <label className="form-label">{field.label}</label>
+            {field.type === 'textarea' ? (
+              <textarea className="input" placeholder={field.placeholder||''} value={forms[active][field.name]||''} onChange={e=>updateField(field.name, e.target.value)}/>
+            ) : field.type === 'checkbox' ? (
+              <label style={{display:'flex',gap:8,alignItems:'center',fontSize:13,color:'var(--text)'}}>
+                <input type="checkbox" checked={Boolean(forms[active][field.name])} onChange={e=>updateField(field.name, e.target.checked)}/>
+                {field.placeholder || field.label}
+              </label>
+            ) : (
+              <input className="input" type={field.type || 'text'} placeholder={field.placeholder||''} value={forms[active][field.name]||''} onChange={e=>updateField(field.name, e.target.value)}/>
+            )}
+          </div>
+        ))}
+        <button className="btn btn-primary" onClick={submit} disabled={loading} style={{width:'100%'}}>
+          {loading ? '生成中...' : tool.button}
+        </button>
+        <p style={{fontSize:11,color:'var(--text2)',lineHeight:1.7,marginTop:12}}>
+          内测版每月 30 次额度。每次生成选题、大纲、诊断或日更包消耗 1 次。当前阶段为本地内测记录，不接入真实支付。
+        </p>
+      </div>
+      
+      <div className="mvp-panel">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:14}}>
+          <div className="mvp-panel-title" style={{marginBottom:0}}>生成结果</div>
+          <div className="mvp-actions" style={{marginTop:0}}>
+            <button className="btn btn-sm" onClick={copyResult} disabled={!result}>复制结果</button>
+            <button className="btn btn-sm" onClick={()=>setShowRaw(!showRaw)} disabled={!result}>{showRaw ? '收起 JSON' : '原始 JSON'}</button>
+          </div>
+        </div>
+        <div className="mvp-result">
+          {loading ? <div className="mvp-loading"><span className="mvp-spinner"></span>正在生成，请稍等...</div> :
+            result ? (
+              <div>
+                {!result.success && <div className="badge badge-red" style={{marginBottom:10}}>生成失败：{result.error || '未知错误'}</div>}
+                {result.offline && <div className="badge badge-yellow" style={{marginBottom:10}}>离线模式：Prompt 已导出到 output 目录</div>}
+                {result.parse_error && <div className="badge badge-red" style={{marginBottom:10}}>JSON 解析失败，已保留 raw_text</div>}
+                {renderMvpValue(result.result || {})}
+              </div>
+            ) : <div className="mvp-result-empty">选择一个功能，填写表单后开始生成。</div>}
+        </div>
+        {showRaw && result && <pre className="mvp-json">{JSON.stringify(result, null, 2)}</pre>}
+      </div>
+    </div>
+  </div>);
+}
+
+// ============================================================
+// 主应用
+// ============================================================
+function App() {
+  const [page, setPage] = useState('mvp');
+  const [status, setStatus] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [currentProject, setCurrentProject] = useState(null);
+  
+  const refresh = useCallback(async () => {
+    try {
+      const [s, p] = await Promise.all([api.get('/api/status'), api.get('/api/projects')]);
+      setStatus(s); setProjects(p.projects||[]); setCurrentProject(p.current);
+    } catch(e) { console.error('加载失败:', e); }
+  }, []);
+  
+  useEffect(() => { refresh(); const t = setInterval(refresh, 15000); return ()=>clearInterval(t); }, [refresh]);
+  
+  const switchProject = async (pid) => {
+    await api.post(`/api/projects/${pid}/switch`);
+    await refresh();
+  };
+  
+  const navItems = [
+    {key:'dashboard', icon:'📊', label:'仪表盘'},
+    {key:'mvp', icon:'🧭', label:'小说日更助手'},
+    {key:'chapters', icon:'📖', label:'章节管理'},
+    {key:'produce', icon:'🚀', label:'生产控制'},
+    {key:'tropes', icon:'🎭', label:'套路工坊'},
+    {key:'world', icon:'🌍', label:'世界观'},
+    {key:'projects', icon:'📁', label:'项目管理'},
+  ];
+  
+  const curProject = projects.find(p => p.id === currentProject);
+  
+  return (
+    <div className="app">
+      <div className="sidebar">
+        <div className="sidebar-header">
+          <h1>NOVEL FACTORY</h1>
+          <p>AI小说工厂 v3.0</p>
+        </div>
+        
+        {projects.length > 0 && (
+          <select className="project-select" value={currentProject||''} onChange={e=>switchProject(e.target.value)}>
+            {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        )}
+        
+        <div className="nav">
+          {navItems.map(item => (
+            <div key={item.key} className={`nav-item ${page===item.key?'active':''}`} onClick={()=>setPage(item.key)}>
+              <span className="nav-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+        
+        <div style={{padding:'16px 20px',borderTop:'1px solid var(--border)',fontSize:11,color:'var(--text2)'}}>
+          <span className={`status-dot ${status?.llm?.mode!=='offline'?'on':'off'}`}></span>
+          {status?.llm?.mode || 'offline'}
+        </div>
+      </div>
+      
+      <div className="main">
+        <div className="topbar">
+          <div className="topbar-title">{curProject?.name || 'AI小说工厂'} / {navItems.find(n=>n.key===page)?.label}</div>
+          <div className="topbar-status">
+            <span>📖 {status?.chapters?.total||0}章</span>
+            <span>✍️ {(status?.chapters?.words||0).toLocaleString()}字</span>
+            <span>🎭 {status?.tropes||0}套路</span>
+          </div>
+        </div>
+        
+        <div className="content">
+          {page==='dashboard' && <Dashboard status={status}/>}
+          {page==='mvp' && <MVPAssistantView/>}
+          {page==='chapters' && <ChaptersView/>}
+          {page==='produce' && <ProduceView status={status}/>}
+          {page==='tropes' && <TropesView/>}
+          {page==='world' && <WorldView/>}
+          {page==='projects' && <ProjectsView projects={projects} current={currentProject} onSwitch={switchProject} onRefresh={refresh}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
